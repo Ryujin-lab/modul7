@@ -2,15 +2,20 @@ package pkg;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.sql.ResultSet;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 
+import com.mysql.cj.xdevapi.Result;
+
 public class MyPanel extends JPanel {
    JLabel beliLabel, literLabel, BayarLabel;
    JTextField beli, liter, bayar;
    JButton isi, stop, reset, load;
+   JTable table;
+   int cek = 0;
 
    int beliBensin = 0;
    float literBensin = 0;
@@ -20,7 +25,7 @@ public class MyPanel extends JPanel {
       @Override
       public void run() {
          try {
-            if (beli.getText().equals("0")) {
+            if (cek == 0) {
                while (true) {
                   Thread.sleep(50);
                   literBensin += 0.01;
@@ -30,7 +35,6 @@ public class MyPanel extends JPanel {
                }
             }
             else {
-               int cek = Integer.parseInt(beli.getText());
                while (BayarBensin < cek) {
                   Thread.sleep(50);
                   literBensin += 0.01;
@@ -74,6 +78,7 @@ public class MyPanel extends JPanel {
 
          @Override
          public void actionPerformed(ActionEvent arg0) {
+            cek = Integer.parseInt(beli.getText());
             if (arg0.getSource() == isi) {
                isi.setEnabled(false);
                stop.setEnabled(true);
@@ -124,7 +129,9 @@ public class MyPanel extends JPanel {
 
          @Override
          public void actionPerformed(ActionEvent arg0) {
-            MySQL.executeUpdateQuerry("insert into jurnal (bayar, liter) values ('"+BayarBensin+"','"+literBensin+"') ");
+            MySQL.executeUpdateQuerry("insert into jurnal (bayar, liter) values ('"+BayarBensin+"','"+String.format("%.02f", literBensin)+"') ");
+            DefaultTableModel m = (DefaultTableModel) table.getModel();
+            m.addRow(new Object[]{ BayarBensin , String.format("%.02f", literBensin)});
          }
          
       });
@@ -138,7 +145,17 @@ public class MyPanel extends JPanel {
       int numRows = 0 ;
       DefaultTableModel model = new DefaultTableModel(numRows, colHeadings.length) ;
       model.setColumnIdentifiers(colHeadings);
-      JTable table = new JTable(model);
+      table = new JTable(model);
+
+      ResultSet rs = MySQL.executeReadQuerry("select * from jurnal");
+      try {
+         while(rs.next()){
+            DefaultTableModel m = (DefaultTableModel) table.getModel();
+            m.addRow(new Object[]{ rs.getInt("bayar") , rs.getFloat("liter")});
+         }
+      } catch (Exception e) {
+         e.printStackTrace();
+      }
    
 
       JScrollPane sc = new JScrollPane(table);
